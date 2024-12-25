@@ -1,0 +1,3 @@
+# Exclude specific checkpoint folders
+ckpts/E2TTS_Base/
+ckpts/F5TTS_Base/
