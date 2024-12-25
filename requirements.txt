@@ -46,8 +46,6 @@ ema-pytorch==0.7.7
 encodec==0.1.1
 entrypoints==0.4
 executing==2.0.1
-# Editable install with no version control (f5-tts==0.3.4)
--e e:\mypersonal\f5-tts
 fastapi==0.115.6
 fastjsonschema==2.19.1
 ffmpeg==1.4
@@ -224,10 +222,7 @@ tinycss2==1.4.0
 tokenizers==0.21.0
 tomli==2.2.1
 tomlkit==0.13.2
-torch==2.5.1+cu118
-torchaudio==2.5.1+cu118
 torchdiffeq==0.2.5
-torchvision==0.20.1+cu118
 tornado==6.4.1
 tqdm==4.67.1
 traitlets==5.14.3
