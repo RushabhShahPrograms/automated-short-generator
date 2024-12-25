@@ -10,6 +10,9 @@
 This is still under development and take time to build it properly.
 
 
+You can watch demo here: [Automated Short Generator | Development Version](https://youtu.be/O9-DwTyqP34)
+
+
 Until then if you want to test it, then follow this steps:
 ```
 conda create -n automated-short-generator python==3.11
