@@ -1,4 +1,4 @@
-# Automated Shorts Generator
+# Automated Shorts Generator ▶️
 
 
 ## Tested And Build on Legion 5 15ACH6
@@ -10,7 +10,7 @@
 This is still under development and take time to build it properly.
 
 
-You can watch demo here: [Automated Short Generator | Development Version](https://youtu.be/O9-DwTyqP34)
+🔴 You can watch demo here: [Automated Short Generator | Development Version](https://youtu.be/O9-DwTyqP34)
 
 
 Until then if you want to test it, then follow this steps:
@@ -28,10 +28,19 @@ This will open PyQt6 UI where we can do our work.
 From here generate your google gemini api key: [Google AI Studio](https://aistudio.google.com/welcome)
 
 
-## Flow
+## Flow 🔄️
 - Used gemini model to create the short text of what we want to talk.
 - Then used F5-TTS which will take those text and user has to just provide one 15 second reference audio (either english or chinese) then F5-TTS will convert the text into the human like audio based on the reference audio provided.
 - And you will be able to download the audio
 - Added option to merge this audio with the video and even provide hard subtitles for the video
 - Using whisper large-v2 model for generating subtitles
 - Using FFmpeg I am merging the generated audio and the subtitles.srt file created by whisper in one single video.
+
+## To-Do List 🎯
+- Prompt Improving, to generate response text only for the short form video content.
+- UI Improvement
+- Provide both option
+  - As go everything in one flow
+  - Choose any one tool to use
+- Proper Subtitles management with good font and proper size
+- Proper length synchronization between audio and the input video   
