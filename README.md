@@ -20,5 +20,6 @@ From here generate your google gemini api key: [Google AI Studio](https://aistud
 
 
 ## Flow
-Used gemini model to create the short text of what we want to talk.
-Then used F5-TTS which will take those text and user has to just provide one 15 second reference audio (either english or chinese) then F5-TTS will convert the text into the human like audio based on the reference audio provided. And you will be able to download the audio
+- Used gemini model to create the short text of what we want to talk.
+- Then used F5-TTS which will take those text and user has to just provide one 15 second reference audio (either english or chinese) then F5-TTS will convert the text into the human like audio based on the reference audio provided.
+- And you will be able to download the audio
