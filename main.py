@@ -14,6 +14,8 @@ from config import save_api_key, load_api_key
 import subprocess
 import os
 import time
+import whisper
+from PyQt6.QtMultimediaWidgets import QVideoWidget
 
 class APIKeyScreen(QWidget):
     def __init__(self, parent=None):
@@ -241,17 +243,21 @@ class TTSScreen(QWidget):
         
         # Reference Audio Section with better styling
         ref_audio_label = QLabel("Reference Audio:")
-        ref_audio_label.setFont(QFont("", 12))
+        font = ref_audio_label.font()
+        font.setPointSize(12)
+        ref_audio_label.setFont(font)
         left_column.addWidget(ref_audio_label)
         
         ref_audio_layout = QHBoxLayout()
         self.ref_audio_path = QLineEdit()
         self.ref_audio_path.setText("sample_audio.mp3")
         self.ref_audio_path.setReadOnly(True)
+        self.ref_audio_path.setFont(font)
         ref_audio_layout.addWidget(self.ref_audio_path)
         
         self.browse_button = QPushButton("Browse")
         self.browse_button.setFixedWidth(100)
+        self.browse_button.setFont(font)
         self.browse_button.clicked.connect(self.browse_audio)
         ref_audio_layout.addWidget(self.browse_button)
         left_column.addLayout(ref_audio_layout)
@@ -260,11 +266,12 @@ class TTSScreen(QWidget):
         
         # Generated Text Section
         text_label = QLabel("Generated Text (editable):")
-        text_label.setFont(QFont("", 12))
+        text_label.setFont(font)
         left_column.addWidget(text_label)
         
         self.text_edit = QTextEdit()
         self.text_edit.setMaximumHeight(200)  # Limit height
+        self.text_edit.setFont(font)
         left_column.addWidget(self.text_edit)
         
         left_column.addSpacing(20)
@@ -272,7 +279,7 @@ class TTSScreen(QWidget):
         # Generate Audio Button
         self.generate_button = QPushButton("Generate Audio")
         self.generate_button.setMinimumHeight(50)
-        self.generate_button.setFont(QFont("", 12))
+        self.generate_button.setFont(font)
         left_column.addWidget(self.generate_button)
         
         left_column.addStretch()
@@ -287,7 +294,7 @@ class TTSScreen(QWidget):
         
         # Progress Section
         progress_group = QGroupBox("Generation Progress")
-        progress_group.setFont(QFont("", 12))
+        progress_group.setFont(font)
         progress_layout = QVBoxLayout()
         
         self.progress_bar = QProgressBar()
@@ -304,7 +311,7 @@ class TTSScreen(QWidget):
         
         # Audio Player Section
         player_group = QGroupBox("Audio Player")
-        player_group.setFont(QFont("", 12))
+        player_group.setFont(font)
         player_layout = QVBoxLayout()
         
         # Add slider for audio progress
@@ -315,7 +322,9 @@ class TTSScreen(QWidget):
         # Time labels
         time_layout = QHBoxLayout()
         self.current_time_label = QLabel("0:00")
+        self.current_time_label.setFont(font)
         self.duration_label = QLabel("0:00")
+        self.duration_label.setFont(font)
         time_layout.addWidget(self.current_time_label)
         time_layout.addStretch()
         time_layout.addWidget(self.duration_label)
@@ -327,11 +336,13 @@ class TTSScreen(QWidget):
         self.play_button = QPushButton("Play")
         self.play_button.setEnabled(False)
         self.play_button.setFixedWidth(100)
+        self.play_button.setFont(font)
         self.play_button.clicked.connect(self.play_audio)
         
         self.stop_button = QPushButton("Stop")
         self.stop_button.setEnabled(False)
         self.stop_button.setFixedWidth(100)
+        self.stop_button.setFont(font)
         self.stop_button.clicked.connect(self.stop_audio)
         
         controls_layout.addStretch()
@@ -343,13 +354,22 @@ class TTSScreen(QWidget):
         player_group.setLayout(player_layout)
         right_column.addWidget(player_group)
         
-        # Download Button
+        # Replace the single download button with a button layout
+        button_layout = QHBoxLayout()
+        
         self.download_button = QPushButton("Download Audio")
         self.download_button.setMinimumHeight(50)
-        self.download_button.setFont(QFont("", 12))
+        self.download_button.setFont(font)
         self.download_button.hide()
-        right_column.addWidget(self.download_button)
+        button_layout.addWidget(self.download_button)
         
+        self.add_to_video_button = QPushButton("Add to Video")
+        self.add_to_video_button.setMinimumHeight(50)
+        self.add_to_video_button.setFont(font)
+        self.add_to_video_button.hide()  # Initially hidden, will show after audio generation
+        button_layout.addWidget(self.add_to_video_button)
+        
+        right_column.addLayout(button_layout)
         right_column.addStretch()
         
         # Create right column widget
@@ -408,6 +428,159 @@ class TTSScreen(QWidget):
         if file_name:
             self.ref_audio_path.setText(file_name)
 
+class VideoProcessingScreen(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setup_ui()
+        self.worker = None
+
+    def setup_ui(self):
+        layout = QVBoxLayout()
+        
+        # Title
+        title_label = QLabel("Video Processing")
+        font = title_label.font()
+        font.setPointSize(16)
+        font.setBold(True)
+        title_label.setFont(font)
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(title_label)
+        
+        layout.addSpacing(20)
+        
+        # Video selection
+        video_section = QGroupBox("Select Video")
+        video_layout = QVBoxLayout()
+        
+        video_path_layout = QHBoxLayout()
+        self.video_path = QLineEdit()
+        self.video_path.setReadOnly(True)
+        self.video_path.setFont(font)
+        video_path_layout.addWidget(self.video_path)
+        
+        self.browse_video_button = QPushButton("Browse")
+        self.browse_video_button.setFixedWidth(100)
+        self.browse_video_button.setFont(font)
+        video_path_layout.addWidget(self.browse_video_button)
+        
+        video_layout.addLayout(video_path_layout)
+        video_section.setLayout(video_layout)
+        layout.addWidget(video_section)
+        
+        # Process button
+        self.process_button = QPushButton("Process Video")
+        self.process_button.setMinimumHeight(50)
+        self.process_button.setFont(font)
+        layout.addWidget(self.process_button)
+        
+        # Progress bar
+        self.progress_bar = QProgressBar()
+        self.progress_bar.hide()
+        layout.addWidget(self.progress_bar)
+        
+        # Video player section
+        player_section = QGroupBox("Video Player")
+        player_layout = QVBoxLayout()
+        
+        # Video widget
+        self.video_widget = QWidget()
+        self.video_widget.setMinimumHeight(300)
+        self.video_widget.setStyleSheet("background-color: black;")
+        player_layout.addWidget(self.video_widget)
+        
+        # Video controls
+        controls_layout = QHBoxLayout()
+        
+        self.play_video_button = QPushButton("Play")
+        self.play_video_button.setEnabled(False)
+        self.play_video_button.setFont(font)
+        
+        self.stop_video_button = QPushButton("Stop")
+        self.stop_video_button.setEnabled(False)
+        self.stop_video_button.setFont(font)
+        
+        controls_layout.addStretch()
+        controls_layout.addWidget(self.play_video_button)
+        controls_layout.addWidget(self.stop_video_button)
+        controls_layout.addStretch()
+        
+        player_layout.addLayout(controls_layout)
+        player_section.setLayout(player_layout)
+        layout.addWidget(player_section)
+        
+        # Download button
+        self.download_video_button = QPushButton("Download Processed Video")
+        self.download_video_button.setMinimumHeight(50)
+        self.download_video_button.setFont(font)
+        self.download_video_button.hide()
+        layout.addWidget(self.download_video_button)
+        
+        self.setLayout(layout)
+        
+        # Connect signals
+        self.browse_video_button.clicked.connect(self.browse_video)
+        
+    def browse_video(self):
+        file_name, _ = QFileDialog.getOpenFileName(
+            self, "Select Video", "", "Video Files (*.mp4 *.avi *.mkv)"
+        )
+        if file_name:
+            self.video_path.setText(file_name)
+
+class VideoProcessingWorker(QThread):
+    progress = pyqtSignal(int)
+    finished = pyqtSignal(str)
+    error = pyqtSignal(str)
+    
+    def __init__(self, video_path, audio_path):
+        super().__init__()
+        self.video_path = video_path
+        self.audio_path = audio_path
+        
+    def run(self):
+        try:
+            self.progress.emit(10)
+            
+            # Load Whisper model and generate subtitles
+            model = whisper.load_model("large-v3")
+            result = model.transcribe(self.audio_path, task="transcribe")
+            
+            self.progress.emit(40)
+            
+            # Generate SRT file
+            srt_path = "subtitles.srt"
+            with open(srt_path, "w", encoding='utf-8') as srt_file:
+                for i, segment in enumerate(result["segments"]):
+                    srt_file.write(f"{i + 1}\n")
+                    start = f"{int(segment['start'] // 3600):02}:{int((segment['start'] % 3600) // 60):02}:{int(segment['start'] % 60):02},{int((segment['start'] % 1) * 1000):03}"
+                    end = f"{int(segment['end'] // 3600):02}:{int((segment['end'] % 3600) // 60):02}:{int(segment['end'] % 60):02},{int((segment['end'] % 1) * 1000):03}"
+                    srt_file.write(f"{start} --> {end}\n")
+                    srt_file.write(f"{segment['text']}\n\n")
+            
+            self.progress.emit(70)
+            
+            # Process video with FFmpeg
+            output_path = "processed_video.mp4"
+            command = [
+                'ffmpeg',
+                '-i', self.video_path,
+                '-i', self.audio_path,
+                '-vf', f"subtitles={srt_path}:force_style='Alignment=10,Fontsize=15,PrimaryColour=&HFFFFFF&,BackColour=&H80000000&,BorderStyle=2,Outline=1,Shadow=0,MarginV=10,FontName=Arial'",
+                '-map', '0:v',
+                '-map', '1:a',
+                '-c:v', 'libx264',
+                '-c:a', 'aac',
+                '-y',
+                output_path
+            ]
+            
+            subprocess.run(command, check=True)
+            self.progress.emit(100)
+            self.finished.emit(output_path)
+            
+        except Exception as e:
+            self.error.emit(str(e))
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -422,11 +595,13 @@ class MainWindow(QMainWindow):
         self.api_screen = APIKeyScreen()
         self.main_screen = MainScreen()
         self.tts_screen = TTSScreen()
+        self.video_screen = VideoProcessingScreen()
         
         # Add screens to stacked widget
         self.stacked_widget.addWidget(self.api_screen)
         self.stacked_widget.addWidget(self.main_screen)
         self.stacked_widget.addWidget(self.tts_screen)
+        self.stacked_widget.addWidget(self.video_screen)
         
         # Setup connections
         self.setup_connections()
@@ -447,6 +622,9 @@ class MainWindow(QMainWindow):
         self.main_screen.copy_button.clicked.connect(self.show_tts_screen)
         self.tts_screen.generate_button.clicked.connect(self.generate_audio)
         self.tts_screen.download_button.clicked.connect(self.download_audio)
+        self.tts_screen.add_to_video_button.clicked.connect(self.show_video_screen)
+        self.video_screen.process_button.clicked.connect(self.process_video)
+        self.video_screen.download_video_button.clicked.connect(self.download_processed_video)
 
     def handle_api_key_submit(self):
         api_key = self.api_screen.api_key_input.text().strip()
@@ -531,6 +709,7 @@ class MainWindow(QMainWindow):
             self.tts_screen.progress_bar.hide()
             self.tts_screen.generate_button.setEnabled(True)
             self.tts_screen.download_button.show()
+            self.tts_screen.add_to_video_button.show()
             
             # Setup audio player with the generated file
             self.tts_screen.player.setSource(QUrl.fromLocalFile(output_file))
@@ -570,6 +749,64 @@ class MainWindow(QMainWindow):
                 
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to save audio: {str(e)}")
+
+    def show_video_screen(self):
+        self.stacked_widget.setCurrentWidget(self.video_screen)
+        
+    def process_video(self):
+        video_path = self.video_screen.video_path.text()
+        if not video_path:
+            QMessageBox.warning(self, "Warning", "Please select a video file")
+            return
+            
+        self.video_screen.progress_bar.show()
+        self.video_screen.progress_bar.setValue(0)
+        self.video_screen.process_button.setEnabled(False)
+        
+        self.video_worker = VideoProcessingWorker(
+            video_path,
+            os.path.join("tests", "infer_cli_basic.wav")
+        )
+        self.video_worker.progress.connect(self.video_screen.progress_bar.setValue)
+        self.video_worker.finished.connect(self.video_processing_finished)
+        self.video_worker.error.connect(self.video_processing_error)
+        self.video_worker.start()
+        
+    def video_processing_finished(self, output_path):
+        self.video_screen.progress_bar.hide()
+        self.video_screen.process_button.setEnabled(True)
+        self.video_screen.download_video_button.show()
+        
+        # Setup video player
+        self.video_screen.player = QMediaPlayer()
+        self.video_screen.video_output = QVideoWidget(self.video_screen.video_widget)
+        self.video_screen.video_output.resize(self.video_screen.video_widget.size())
+        self.video_screen.player.setVideoOutput(self.video_screen.video_output)
+        self.video_screen.player.setSource(QUrl.fromLocalFile(output_path))
+        
+        self.video_screen.play_video_button.setEnabled(True)
+        self.video_screen.stop_video_button.setEnabled(True)
+        
+        QMessageBox.information(self, "Success", "Video processed successfully!")
+        
+    def video_processing_error(self, error_message):
+        self.video_screen.progress_bar.hide()
+        self.video_screen.process_button.setEnabled(True)
+        QMessageBox.critical(self, "Error", error_message)
+        
+    def download_processed_video(self):
+        try:
+            save_path, _ = QFileDialog.getSaveFileName(
+                self, "Save Video File", "", "Video Files (*.mp4)"
+            )
+            
+            if save_path:
+                with open("processed_video.mp4", 'rb') as src, open(save_path, 'wb') as dst:
+                    dst.write(src.read())
+                QMessageBox.information(self, "Success", "Video saved successfully!")
+                
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to save video: {str(e)}")
 
 def main():
     app = QApplication(sys.argv)
